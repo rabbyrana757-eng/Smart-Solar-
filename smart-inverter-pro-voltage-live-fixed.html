@@ -2,337 +2,1444 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
 <title>Smart Inverter Pro</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<script>
-tailwind.config={theme:{extend:{colors:{brand:'#C6F432'}}}};
-</script>
-
 <style>
-body{font-family:Inter,Arial,sans-serif;background:#080808;color:#fff;margin:0;overflow-x:hidden}
-.page-section{display:none}.page-section.active{display:block}
-.glass-card{background:#121212;border-radius:28px;padding:20px;border:1px solid rgba(255,255,255,.04);margin-bottom:12px}
-.gauge-svg{width:240px;height:120px;margin:auto;display:block}
-.gauge-track{fill:none;stroke:#1a1a1a;stroke-width:10;stroke-linecap:round}
-.gauge-progress{fill:none;stroke:#C6F432;stroke-width:10;stroke-linecap:round;stroke-dasharray:251.2;stroke-dashoffset:251.2;transition:stroke-dashoffset .5s}
-.switch{position:relative;display:inline-block;width:44px;height:24px}.switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;inset:0;background:#222;border-radius:34px}.slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s}
-input:checked+.slider{background:#C6F432}input:checked+.slider:before{transform:translateX(20px);background:#000}
-.nav-bottom{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);width:85%;max-width:350px;background:rgba(18,18,18,.97);border-radius:32px;display:flex;justify-content:space-around;padding:12px;z-index:1000}
-.nav-item{color:#555;width:45px;height:45px;border:0;background:none;border-radius:50%}.nav-item.active{color:#000;background:#C6F432}
-.chart-container{height:260px;position:relative;width:100%}
+body{
+    background:#080808;
+    color:white;
+    font-family:Arial,sans-serif;
+    margin:0;
+    overflow-x:hidden;
+}
+
+.card{
+    background:#121212;
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:24px;
+    padding:20px;
+    margin-bottom:14px;
+}
+
+.page{
+    display:none;
+}
+
+.page.active{
+    display:block;
+}
+
+.nav{
+    position:fixed;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    width:82%;
+    max-width:360px;
+    background:#151515;
+    border-radius:35px;
+    padding:10px;
+    display:flex;
+    justify-content:space-around;
+    z-index:999;
+}
+
+.nav button{
+    width:48px;
+    height:48px;
+    border:0;
+    border-radius:50%;
+    background:none;
+    color:#555;
+    font-size:20px;
+}
+
+.nav button.active{
+    background:#C6F432;
+    color:#000;
+}
+
+.chartBox{
+    position:relative;
+    height:300px;
+    width:100%;
+}
+
+.gauge{
+    width:240px;
+    height:130px;
+    margin:auto;
+}
+
+.track{
+    fill:none;
+    stroke:#222;
+    stroke-width:10;
+    stroke-linecap:round;
+}
+
+.progress{
+    fill:none;
+    stroke:#C6F432;
+    stroke-width:10;
+    stroke-linecap:round;
+    stroke-dasharray:251.2;
+    stroke-dashoffset:251.2;
+    transition:.7s;
+}
+
+.value{
+    font-size:48px;
+    font-weight:bold;
+}
+
+.green{
+    color:#C6F432;
+}
+
+.red{
+    color:#ff4545;
+}
+
+.blue{
+    color:#38bdf8;
+}
+
+.small{
+    font-size:10px;
+    color:#666;
+    text-transform:uppercase;
+    font-weight:bold;
+    letter-spacing:1px;
+}
 </style>
 </head>
 
 <body class="pb-32">
+
 <div class="px-5">
 
-<header class="py-8 flex justify-between items-center">
- <div>
-  <h1 class="text-xs font-bold tracking-[0.3em] text-gray-400 uppercase">Smart Inverter</h1>
-  <p id="date-text" class="text-[9px] text-gray-600 mt-1 uppercase font-bold">Loading...</p>
- </div>
- <div class="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">
-  <div id="led-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
- </div>
-</header>
+<header class="py-7 flex justify-between items-center">
 
-<main id="page-home" class="page-section active">
- <div class="glass-card">
-  <div class="relative -mt-5">
-   <svg class="gauge-svg" viewBox="0 0 200 110">
-    <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100"/>
-    <path id="gauge-path" class="gauge-progress" d="M20,100 A80,80 0 0,1 180,100"/>
-   </svg>
-   <div class="absolute inset-0 flex flex-col items-center justify-center mt-12">
-    <h2 id="bat-pct" class="text-5xl font-bold">0%</h2>
-    <p id="charge-source" class="text-[8px] text-brand uppercase tracking-[0.3em] font-black">Idle</p>
-   </div>
-  </div>
-  <div class="grid grid-cols-4 gap-1 mt-6 text-center border-t border-white/5 pt-6">
-   <div><p class="text-[8px] text-gray-600">STATUS</p><p id="v-state" class="text-[10px] font-bold">IDLE</p></div>
-   <div><p class="text-[8px] text-gray-600">Ah</p><p id="v-ah-main" class="text-[10px] font-bold">-- Ah</p></div>
-   <div><p class="text-[8px] text-gray-600">BACKUP</p><p id="backup-time" class="text-[10px] text-cyan-400 font-bold">--</p></div>
-   <div><p class="text-[8px] text-gray-600">POWER</p><p id="v-watt" class="text-[10px] text-brand font-bold">0W</p></div>
-  </div>
- </div>
+<div>
+<h1 class="text-xs font-bold tracking-[.3em] text-gray-400">
+SMART INVERTER
+</h1>
 
- <div class="grid grid-cols-2 gap-4">
-  <div class="glass-card text-center"><p class="text-[9px] text-gray-500">BATTERY VOLTAGE</p><h4 class="text-3xl font-bold"><span id="v-volt">0.0</span><small class="text-xs text-gray-600"> V</small></h4></div>
-  <div class="glass-card text-center"><p class="text-[9px] text-gray-500">CURRENT</p><h4 class="text-3xl font-bold"><span id="v-amp">0.00</span><small class="text-xs text-gray-600"> A</small></h4></div>
- </div>
-
- <div class="glass-card flex justify-between">
-  <div><p class="text-[9px] text-gray-600">TOTAL CHARGING</p><h4 id="wh-in-main" class="text-xl text-brand font-bold">0.000</h4></div>
-  <div class="text-right"><p class="text-[9px] text-gray-600">TOTAL LOADING</p><h4 id="wh-out-main" class="text-xl text-red-500 font-bold">0.000</h4></div>
- </div>
-
- <div class="glass-card">
-  <p class="text-[9px] text-gray-500 text-center mb-4">TODAY'S SUMMARY</p>
-  <div class="grid grid-cols-3 text-center">
-   <div><p class="text-[8px] text-gray-600">SOLAR IN</p><p id="today-solar" class="text-sm text-brand font-bold">0.00</p></div>
-   <div><p class="text-[8px] text-gray-600">LOAD OUT</p><p id="today-load" class="text-sm text-red-400 font-bold">0.00</p></div>
-   <div><p class="text-[8px] text-gray-600">GRID IN</p><p id="today-grid" class="text-sm text-blue-400 font-bold">0.00</p></div>
-  </div>
- </div>
-
- <div class="grid grid-cols-2 gap-4">
-  <div class="glass-card flex justify-between items-center"><span class="text-[10px]">INVERTER</span><label class="switch"><input id="sw-inv" type="checkbox" onchange="pushSw('inverter',this.checked)"><span class="slider"></span></label></div>
-  <div class="glass-card flex justify-between items-center"><span class="text-[10px]">LINE CUT</span><label class="switch"><input id="sw-line" type="checkbox" onchange="pushSw('line',this.checked)"><span class="slider"></span></label></div>
- </div>
-</main>
-
-<main id="page-stat" class="page-section">
- <h2 class="text-2xl font-bold mb-5 uppercase tracking-widest">Analytics</h2>
- <div class="glass-card">
-  <div class="flex justify-between mb-3"><span class="text-[9px] text-gray-500">LAST 90 MINUTES</span><span id="graph-status" class="text-[8px] text-gray-600">Waiting...</span></div>
-  <div class="chart-container"><canvas id="powerChart"></canvas></div>
- </div>
- <div class="grid grid-cols-2 gap-4">
-  <div class="glass-card"><p class="text-[9px] text-gray-500">MAX CHARGE</p><h4><span id="max-charge" class="text-xl text-brand">0</span>W</h4></div>
-  <div class="glass-card"><p class="text-[9px] text-gray-500">MAX LOAD</p><h4><span id="max-load" class="text-xl text-red-500">0</span>W</h4></div>
- </div>
- <div class="grid grid-cols-2 gap-4">
-  <div class="glass-card"><p class="text-[9px] text-gray-500">AH GENERATED</p><h4><span id="today-ahin">0.00</span> Ah</h4></div>
-  <div class="glass-card"><p class="text-[9px] text-gray-500">AH DISCHARGED</p><h4><span id="today-ahout">0.00</span> Ah</h4></div>
- </div>
- <button onclick="resetMax()" class="w-full text-[10px] text-gray-600">RESET ANALYTICS</button>
-</main>
-
-<main id="page-sys" class="page-section">
- <h2 class="text-2xl font-bold mb-8 uppercase tracking-widest">Hardware</h2>
- <div class="glass-card space-y-6">
-  <div class="flex justify-between"><span>WiFi Signal</span><span id="wifi-rssi" class="text-brand">-- dBm</span></div>
-  <div class="flex justify-between"><span>Sync Status</span><span id="conn-status" class="text-emerald-500">Connecting</span></div>
- </div>
-</main>
+<p id="dateText"
+class="text-[9px] text-gray-600 mt-1">
+Loading...
+</p>
 </div>
 
-<nav class="nav-bottom">
- <button type="button" onclick="navTo('home',this)" class="nav-item active"><i class="fas fa-home"></i></button>
- <button type="button" onclick="navTo('stat',this)" class="nav-item"><i class="fas fa-chart-line"></i></button>
- <button type="button" onclick="navTo('sys',this)" class="nav-item"><i class="fas fa-microchip"></i></button>
+<div id="statusLed"
+class="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">
+
+<div id="ledDot"
+class="w-2 h-2 rounded-full bg-red-500">
+</div>
+
+</div>
+
+</header>
+
+
+<!-- ================= HOME ================= -->
+
+<main id="homePage" class="page active">
+
+<div class="card text-center">
+
+<svg class="gauge" viewBox="0 0 200 110">
+
+<path
+class="track"
+d="M20,100 A80,80 0 0,1 180,100">
+</path>
+
+<path
+id="gaugePath"
+class="progress"
+d="M20,100 A80,80 0 0,1 180,100">
+</path>
+
+</svg>
+
+<div style="margin-top:-75px">
+
+<div id="batteryPercent"
+class="value">
+0%
+</div>
+
+<div id="batterySource"
+class="small green">
+IDLE
+</div>
+
+</div>
+
+
+<div class="grid grid-cols-4 gap-2 mt-16 pt-5 border-t border-white/5">
+
+<div>
+<p class="small">Voltage</p>
+<p id="voltageTop">0.0V</p>
+</div>
+
+<div>
+<p class="small">Current</p>
+<p id="currentTop">0.00A</p>
+</div>
+
+<div>
+<p class="small">Power</p>
+<p id="powerTop" class="green">0W</p>
+</div>
+
+<div>
+<p class="small">Status</p>
+<p id="batteryState">IDLE</p>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- VOLTAGE / CURRENT -->
+
+<div class="grid grid-cols-2 gap-4">
+
+<div class="card text-center">
+
+<p class="small mb-2">
+Battery Voltage
+</p>
+
+<div class="text-3xl font-bold">
+<span id="voltage">
+0.00
+</span>
+
+<span class="text-xs text-gray-600">
+V
+</span>
+</div>
+
+</div>
+
+
+<div class="card text-center">
+
+<p class="small mb-2">
+Battery Current
+</p>
+
+<div class="text-3xl font-bold">
+
+<span id="current">
+0.00
+</span>
+
+<span class="text-xs text-gray-600">
+A
+</span>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- POWER -->
+
+<div class="card flex justify-between">
+
+<div>
+
+<p class="small">
+Power
+</p>
+
+<h2 id="power"
+class="text-xl font-bold green">
+0 W
+</h2>
+
+</div>
+
+
+<div>
+
+<p class="small">
+Battery Ah
+</p>
+
+<h2 id="batteryAh"
+class="text-xl font-bold">
+0.0 Ah
+</h2>
+
+</div>
+
+</div>
+
+
+<!-- ENERGY -->
+
+<div class="card">
+
+<p class="small text-center mb-5">
+Energy
+</p>
+
+<div class="grid grid-cols-2 gap-5 text-center">
+
+<div>
+
+<p class="small">
+Total Charging
+</p>
+
+<p id="whIn"
+class="text-xl font-bold green">
+0.000 Wh
+</p>
+
+</div>
+
+<div>
+
+<p class="small">
+Total Loading
+</p>
+
+<p id="whOut"
+class="text-xl font-bold red">
+0.000 Wh
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- TODAY -->
+
+<div class="card">
+
+<p class="small text-center mb-5">
+Today's Energy
+</p>
+
+<div class="grid grid-cols-2 gap-5 text-center">
+
+<div>
+
+<p class="small">
+Charging
+</p>
+
+<p id="dailyIn"
+class="green font-bold">
+0.00 Wh
+</p>
+
+</div>
+
+<div>
+
+<p class="small">
+Loading
+</p>
+
+<p id="dailyOut"
+class="red font-bold">
+0.00 Wh
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</main>
+
+
+<!-- ================= GRAPH ================= -->
+
+<main id="graphPage" class="page">
+
+<h2 class="text-2xl font-bold mb-6">
+POWER GRAPH
+</h2>
+
+<div class="card">
+
+<div class="flex justify-between mb-4">
+
+<div>
+<p class="small">
+Last 90 Minutes
+</p>
+
+<p class="text-xs text-gray-600">
+Live Power
+</p>
+</div>
+
+<div id="graphPower"
+class="green font-bold">
+0W
+</div>
+
+</div>
+
+<div class="chartBox">
+
+<canvas id="powerChart"></canvas>
+
+</div>
+
+</div>
+
+
+<div class="grid grid-cols-2 gap-4">
+
+<div class="card">
+
+<p class="small">
+Max Charge
+</p>
+
+<p id="maxCharge"
+class="text-xl font-bold green">
+0 W
+</p>
+
+</div>
+
+
+<div class="card">
+
+<p class="small">
+Max Load
+</p>
+
+<p id="maxLoad"
+class="text-xl font-bold red">
+0 W
+</p>
+
+</div>
+
+</div>
+
+
+<div class="grid grid-cols-2 gap-4">
+
+<div class="card">
+
+<p class="small">
+Ah Generated
+</p>
+
+<p id="ahIn"
+class="text-xl font-bold green">
+0.00 Ah
+</p>
+
+</div>
+
+<div class="card">
+
+<p class="small">
+Ah Discharged
+</p>
+
+<p id="ahOut"
+class="text-xl font-bold red">
+0.00 Ah
+</p>
+
+</div>
+
+</div>
+
+</main>
+
+
+<!-- ================= SYSTEM ================= -->
+
+<main id="systemPage" class="page">
+
+<h2 class="text-2xl font-bold mb-6">
+SYSTEM
+</h2>
+
+<div class="card">
+
+<div class="flex justify-between border-b border-white/5 pb-4">
+
+<span>
+WiFi Signal
+</span>
+
+<span id="wifi"
+class="green">
+-- dBm
+</span>
+
+</div>
+
+
+<div class="flex justify-between pt-4">
+
+<span>
+Firebase
+</span>
+
+<span id="firebaseStatus"
+class="green">
+Connecting
+</span>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<p class="small mb-4">
+Battery Percentage Formula
+</p>
+
+<p class="text-sm">
+13.0V = 100%
+</p>
+
+<p class="text-sm">
+10.0V = 0%
+</p>
+
+</div>
+
+</main>
+
+</div>
+
+
+<!-- ================= NAV ================= -->
+
+<nav class="nav">
+
+<button
+id="homeBtn"
+class="active"
+onclick="showPage('home')">
+⌂
+</button>
+
+<button
+id="graphBtn"
+onclick="showPage('graph')">
+⌁
+</button>
+
+<button
+id="systemBtn"
+onclick="showPage('system')">
+⚙
+</button>
+
 </nav>
 
+
 <script>
-/* =========================
-   NAVIGATION
-   ========================= */
-window.navTo=function(p,btn){
- document.querySelectorAll('.page-section').forEach(x=>x.classList.remove('active'));
- document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
- const page=document.getElementById('page-'+p);
- if(page)page.classList.add('active');
- if(btn)btn.classList.add('active');
- if(p==='stat'&&window.powerChart)setTimeout(()=>window.powerChart.resize(),100);
- window.scrollTo(0,0);
+
+/* =====================================================
+   FIREBASE
+===================================================== */
+
+const firebaseConfig = {
+
+apiKey:
+"AIzaSyCAMnAogHbaL7aCHU-_Ej_cLLQQDG_h1xM",
+
+authDomain:
+"smart-solar-setup.firebaseapp.com",
+
+databaseURL:
+"https://smart-solar-setup-default-rtdb.firebaseio.com",
+
+projectId:
+"smart-solar-setup",
+
+storageBucket:
+"smart-solar-setup.firebasestorage.app",
+
+messagingSenderId:
+"",
+
+appId:
+""
+
 };
 
-window.resetMax=function(){
- ['maxCharge','maxLoad','todayAhIn','todayAhOut','savedGraphLabels','savedGraphData'].forEach(k=>localStorage.removeItem(k));
- location.reload();
-};
 
-/* =========================================================
-   IMPORTANT:
-   This MUST match the ESP32 code supplied by the user.
-   The old HTML was connected to "inverter-and-solar".
-   ESP32 is connected to "smart-solar-setup".
-   ========================================================= */
-const firebaseConfig={
- apiKey:"AIzaSyCAMnAogHbaL7aCHU-_Ej_cLLQQDG_h1x",
- authDomain:"smart-solar-setup.firebaseapp.com",
- databaseURL:"https://smart-solar-setup-default-rtdb.firebaseio.com",
- projectId:"smart-solar-setup"
-};
+/* Firebase initialize */
 
 firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
 
-/* =========================
-   GRAPH
-   ========================= */
-let labels=JSON.parse(localStorage.getItem('savedGraphLabels')||'[]');
-let graphData=JSON.parse(localStorage.getItem('savedGraphData')||'[]');
+const db =
+firebase.database();
 
-const chart=new Chart(document.getElementById('powerChart'),{
- type:'line',
- data:{labels:labels,datasets:[{
-  data:graphData,borderColor:'#C6F432',backgroundColor:'rgba(198,244,50,.05)',
-  borderWidth:2,pointRadius:1.5,fill:true,tension:.25
- }]},
- options:{
-  responsive:true,maintainAspectRatio:false,animation:false,
-  plugins:{legend:{display:false}},
-  scales:{
-   x:{ticks:{color:'#777',font:{size:8},maxTicksLimit:7},grid:{display:false}},
-   y:{beginAtZero:false,suggestedMin:-100,suggestedMax:100,ticks:{color:'#777',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}
-  }
- }
-});
-window.powerChart=chart;
 
-function addGraphPoint(power){
- const d=new Date();
- const label=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
- const now=d.getTime();
+/* =====================================================
+   PAGE NAVIGATION
+===================================================== */
 
- /* Store a timestamp with each point internally.
-    If old data exists, keep it only if it has matching labels. */
- if(!window.lastGraphMinute)window.lastGraphMinute='';
- const minuteKey=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+'-'+d.getHours()+'-'+d.getMinutes();
+window.showPage = function(page){
 
- if(window.lastGraphMinute!==minuteKey){
-  window.lastGraphMinute=minuteKey;
-  chart.data.labels.push(label);
-  chart.data.datasets[0].data.push(Number(power.toFixed(2)));
-
-  while(chart.data.labels.length>90){
-   chart.data.labels.shift();
-   chart.data.datasets[0].data.shift();
-  }
-
-  localStorage.setItem('savedGraphLabels',JSON.stringify(chart.data.labels));
-  localStorage.setItem('savedGraphData',JSON.stringify(chart.data.datasets[0].data));
-  chart.update('none');
- }
- document.getElementById('graph-status').innerText=chart.data.labels.length+' points';
-}
-
-/* =========================
-   LIVE FIREBASE
-   ========================= */
-let lastWh=null;
-let lastTime=Date.now();
-let maxCharge=parseFloat(localStorage.getItem('maxCharge')||0);
-let maxLoad=parseFloat(localStorage.getItem('maxLoad')||0);
-let ahIn=parseFloat(localStorage.getItem('todayAhIn')||0);
-let ahOut=parseFloat(localStorage.getItem('todayAhOut')||0);
-let whSolar=parseFloat(localStorage.getItem('whSolar')||0);
-let whGrid=parseFloat(localStorage.getItem('whGrid')||0);
-
-function num(v,def=0){
- const x=parseFloat(v);
- return Number.isFinite(x)?x:def;
-}
-
-db.ref('/').on('value',function(snap){
- const data=snap.val();
- if(!data){
-  document.getElementById('conn-status').innerText='No Data';
-  return;
- }
-
- /* LIVE values from the SAME Firebase paths written by ESP32 */
- const voltage=num(data.solar?.voltage);
- const current=num(data.solar?.current);
- const power=num(data.solar?.power,voltage*current);
-
- /* DIRECT voltage-based percentage from ESP32.
-    ESP32 calculates:
-    13.0V = 100%
-    10.0V = 0%
- */
- let percent=num(data.battery?.percent);
- percent=Math.max(0,Math.min(100,percent));
-
- const batteryAh=num(data.battery?.ah);
- const whIn=num(data.energy?.whIn);
- const whOut=num(data.energy?.whOut);
- const dailyIn=num(data.energy?.dailyWhIn);
- const dailyOut=num(data.energy?.dailyWhOut);
-
- document.getElementById('v-volt').innerText=voltage.toFixed(2);
- document.getElementById('v-amp').innerText=current.toFixed(2);
- document.getElementById('v-watt').innerText=Math.abs(power).toFixed(0)+'W';
-
- document.getElementById('bat-pct').innerText=percent.toFixed(0)+'%';
- document.getElementById('gauge-path').style.strokeDashoffset=251.2-(251.2*percent/100);
-
- document.getElementById('v-state').innerText=data.battery?.state||'IDLE';
- document.getElementById('v-ah-main').innerText=batteryAh.toFixed(1)+' Ah';
-
- let source='Idle';
- const hr=new Date().getHours();
- if(current>0.15)source=(hr>=6&&hr<18)?'Solar Charging':'Grid Charging';
- else if(current<-0.15)source='Discharging';
- document.getElementById('charge-source').innerText=source;
-
- /* Backup estimate */
- let backup='Full / Idle';
- if(current<-0.05&&batteryAh>0&&Math.abs(power)>1){
-  const hours=(batteryAh*voltage)/Math.abs(power);
-  if(hours>=48)backup='48h+';
-  else if(hours>0)backup=Math.floor(hours)+'h '+Math.floor((hours%1)*60)+'m';
- }else if(current>0.05)backup='Charging';
- document.getElementById('backup-time').innerText=backup;
-
- document.getElementById('wh-in-main').innerText=whIn.toFixed(3);
- document.getElementById('wh-out-main').innerText=whOut.toFixed(3);
- document.getElementById('today-solar').innerText=dailyIn.toFixed(2);
- document.getElementById('today-load').innerText=dailyOut.toFixed(2);
- document.getElementById('today-grid').innerText=whGrid.toFixed(2);
-
- if(power>maxCharge){maxCharge=power;localStorage.setItem('maxCharge',maxCharge)}
- if(power<0&&Math.abs(power)>maxLoad){maxLoad=Math.abs(power);localStorage.setItem('maxLoad',maxLoad)}
- document.getElementById('max-charge').innerText=maxCharge.toFixed(0);
- document.getElementById('max-load').innerText=maxLoad.toFixed(0);
-
- /* Browser-side Ah accumulation */
- const now=Date.now();
- const elapsed=(now-lastTime)/3600000;
- lastTime=now;
- if(elapsed>0&&elapsed<15/3600){
-  const delta=Math.abs(current)*elapsed;
-  if(current>0.15){ahIn+=delta;localStorage.setItem('todayAhIn',ahIn)}
-  if(current<-0.15){ahOut+=delta;localStorage.setItem('todayAhOut',ahOut)}
- }
- document.getElementById('today-ahin').innerText=ahIn.toFixed(2);
- document.getElementById('today-ahout').innerText=ahOut.toFixed(2);
-
- /* Solar/grid energy counter */
- if(lastWh===null)lastWh=whIn;
- else if(whIn>lastWh){
-  const diff=whIn-lastWh;
-  if(hr>=6&&hr<18)whSolar+=diff;else whGrid+=diff;
-  localStorage.setItem('whSolar',whSolar);
-  localStorage.setItem('whGrid',whGrid);
-  lastWh=whIn;
- }else if(whIn<lastWh)lastWh=whIn;
-
- document.getElementById('wifi-rssi').innerText=(data.system?.wifiRSSI??'--')+' dBm';
-
- const online=data.system?.status==='ONLINE';
- document.getElementById('conn-status').innerText=online?'Active':'Offline';
- document.getElementById('conn-status').className=online?'text-emerald-500':'text-red-500';
- document.getElementById('led-dot').className=online?'w-2 h-2 rounded-full bg-[#C6F432] shadow-[0_0_10px_#C6F432]':'w-2 h-2 rounded-full bg-red-500';
-
- document.getElementById('sw-inv').checked=data.relay?.inverter===true;
- document.getElementById('sw-line').checked=data.relay?.line===true;
-
- /* Graph uses live ESP32 power */
- addGraphPoint(power);
-
-}).catch(function(e){
- console.error(e);
- document.getElementById('conn-status').innerText='Firebase Error';
+document.querySelectorAll(".page")
+.forEach(x=>{
+x.classList.remove("active");
 });
 
-/* Relay paths kept */
-window.pushSw=function(k,v){
- db.ref('relay').update({[k]:v}).catch(console.error);
+document.querySelectorAll(".nav button")
+.forEach(x=>{
+x.classList.remove("active");
+});
+
+
+if(page==="home"){
+
+document.getElementById("homePage")
+.classList.add("active");
+
+document.getElementById("homeBtn")
+.classList.add("active");
+
+}
+
+if(page==="graph"){
+
+document.getElementById("graphPage")
+.classList.add("active");
+
+document.getElementById("graphBtn")
+.classList.add("active");
+
+setTimeout(()=>{
+
+if(powerChart){
+powerChart.resize();
+}
+
+},100);
+
+}
+
+if(page==="system"){
+
+document.getElementById("systemPage")
+.classList.add("active");
+
+document.getElementById("systemBtn")
+.classList.add("active");
+
+}
+
 };
 
-/* Date */
-const d=new Date();
-document.getElementById('date-text').innerText=d.toLocaleString('default',{month:'short'})+' '+d.getDate()+', '+d.getFullYear();
+
+/* =====================================================
+   BATTERY VOLTAGE PERCENT
+===================================================== */
+
+function voltageToPercent(v){
+
+const FULL = 13.0;
+
+const EMPTY = 10.0;
+
+let percent =
+((v - EMPTY) /
+(FULL - EMPTY)) * 100;
+
+percent =
+Math.max(0,
+Math.min(100,percent));
+
+return percent;
+
+}
+
+
+/* =====================================================
+   GRAPH STORAGE
+===================================================== */
+
+const MAX_POINTS = 90;
+
+let graphLabels =
+JSON.parse(
+localStorage.getItem("graphLabels") || "[]"
+);
+
+let graphData =
+JSON.parse(
+localStorage.getItem("graphData") || "[]"
+);
+
+
+/* =====================================================
+   CHART
+===================================================== */
+
+const ctx =
+document
+.getElementById("powerChart")
+.getContext("2d");
+
+
+const powerChart =
+new Chart(ctx,{
+
+type:"line",
+
+data:{
+
+labels:graphLabels,
+
+datasets:[{
+
+data:graphData,
+
+borderColor:"#C6F432",
+
+backgroundColor:
+"rgba(198,244,50,.05)",
+
+borderWidth:2,
+
+pointRadius:0,
+
+fill:true,
+
+tension:.35
+
+}]
+
+},
+
+options:{
+
+responsive:true,
+
+maintainAspectRatio:false,
+
+animation:false,
+
+plugins:{
+
+legend:{
+display:false
+}
+
+},
+
+scales:{
+
+x:{
+
+ticks:{
+color:"#777",
+maxTicksLimit:10
+},
+
+grid:{
+display:false
+}
+
+},
+
+y:{
+
+beginAtZero:false,
+
+ticks:{
+color:"#777"
+},
+
+grid:{
+color:
+"rgba(255,255,255,.05)"
+}
+
+}
+
+}
+
+}
+
+});
+
+
+window.powerChart =
+powerChart;
+
+
+/* =====================================================
+   GRAPH UPDATE
+===================================================== */
+
+function updateGraph(power){
+
+const now =
+new Date();
+
+const time =
+now.toLocaleTimeString(
+[],
+{
+hour:"2-digit",
+minute:"2-digit"
+}
+);
+
+
+/*
+প্রতি Firebase update-এ
+একটি নতুন point যোগ হবে।
+ESP32 প্রতি 2 second পাঠালেও
+একই মিনিটের data বারবার না দিয়ে
+প্রতি মিনিটে 1 point রাখা হচ্ছে।
+*/
+
+if(
+graphLabels.length===0 ||
+graphLabels[
+graphLabels.length-1
+] !== time
+){
+
+graphLabels.push(time);
+
+graphData.push(power);
+
+}
+
+
+/* সর্বোচ্চ 90 মিনিট */
+
+while(
+graphLabels.length > MAX_POINTS
+){
+
+graphLabels.shift();
+graphData.shift();
+
+}
+
+
+powerChart.data.labels =
+graphLabels;
+
+powerChart.data.datasets[0].data =
+graphData;
+
+powerChart.update("none");
+
+
+localStorage.setItem(
+"graphLabels",
+JSON.stringify(graphLabels)
+);
+
+localStorage.setItem(
+"graphData",
+JSON.stringify(graphData)
+);
+
+}
+
+
+/* =====================================================
+   MAX POWER
+===================================================== */
+
+let maxCharge =
+parseFloat(
+localStorage.getItem("maxCharge") || "0"
+);
+
+let maxLoad =
+parseFloat(
+localStorage.getItem("maxLoad") || "0"
+);
+
+
+/* =====================================================
+   AH
+===================================================== */
+
+let ahIn =
+parseFloat(
+localStorage.getItem("ahIn") || "0"
+);
+
+let ahOut =
+parseFloat(
+localStorage.getItem("ahOut") || "0"
+);
+
+let lastTime =
+Date.now();
+
+
+/* =====================================================
+   FIREBASE LIVE DATA
+===================================================== */
+
+db.ref("/").on(
+
+"value",
+
+function(snapshot){
+
+const data =
+snapshot.val();
+
+
+if(!data){
+
+document.getElementById(
+"firebaseStatus"
+).innerText =
+"No Data";
+
+return;
+
+}
+
+
+/* ---------------------------------------------
+   SOLAR DATA
+--------------------------------------------- */
+
+let voltage =
+parseFloat(
+data.solar &&
+data.solar.voltage != null
+?
+data.solar.voltage
+:
+0
+);
+
+
+let current =
+parseFloat(
+data.solar &&
+data.solar.current != null
+?
+data.solar.current
+:
+0
+);
+
+
+let power =
+parseFloat(
+data.solar &&
+data.solar.power != null
+?
+data.solar.power
+:
+(voltage * current)
+);
+
+
+/* ---------------------------------------------
+   BATTERY
+--------------------------------------------- */
+
+let batteryAh =
+parseFloat(
+data.battery &&
+data.battery.ah != null
+?
+data.battery.ah
+:
+0
+);
+
+
+let batteryState =
+data.battery &&
+data.battery.state
+?
+data.battery.state
+:
+"IDLE";
+
+
+/*
+IMPORTANT:
+
+Percentage সরাসরি voltage
+থেকে হিসাব হচ্ছে।
+
+13V = 100%
+10V = 0%
+*/
+
+const percent =
+voltageToPercent(voltage);
+
+
+/* ---------------------------------------------
+   UPDATE VOLTAGE
+--------------------------------------------- */
+
+document.getElementById(
+"voltage"
+).innerText =
+voltage.toFixed(2);
+
+
+document.getElementById(
+"voltageTop"
+).innerText =
+voltage.toFixed(1)+"V";
+
+
+/* ---------------------------------------------
+   UPDATE CURRENT
+--------------------------------------------- */
+
+document.getElementById(
+"current"
+).innerText =
+current.toFixed(2);
+
+
+document.getElementById(
+"currentTop"
+).innerText =
+current.toFixed(2)+"A";
+
+
+/* ---------------------------------------------
+   POWER
+--------------------------------------------- */
+
+document.getElementById(
+"power"
+).innerText =
+power.toFixed(0)+" W";
+
+
+document.getElementById(
+"powerTop"
+).innerText =
+Math.abs(power).toFixed(0)+"W";
+
+
+document.getElementById(
+"graphPower"
+).innerText =
+power.toFixed(0)+"W";
+
+
+/* ---------------------------------------------
+   BATTERY %
+--------------------------------------------- */
+
+document.getElementById(
+"batteryPercent"
+).innerText =
+percent.toFixed(0)+"%";
+
+
+/* ---------------------------------------------
+   GAUGE
+--------------------------------------------- */
+
+const offset =
+251.2 -
+(251.2 * percent / 100);
+
+
+document.getElementById(
+"gaugePath"
+).style.strokeDashoffset =
+offset;
+
+
+/* ---------------------------------------------
+   BATTERY STATE
+--------------------------------------------- */
+
+document.getElementById(
+"batteryState"
+).innerText =
+batteryState;
+
+
+/* ---------------------------------------------
+   SOURCE
+--------------------------------------------- */
+
+let source =
+"IDLE";
+
+
+if(current > .15){
+
+source =
+"SOLAR / CHARGING";
+
+}
+
+else if(current < -.15){
+
+source =
+"DISCHARGING";
+
+}
+
+
+document.getElementById(
+"batterySource"
+).innerText =
+source;
+
+
+/* ---------------------------------------------
+   AH
+--------------------------------------------- */
+
+document.getElementById(
+"batteryAh"
+).innerText =
+batteryAh.toFixed(1)+" Ah";
+
+
+/* ---------------------------------------------
+   ENERGY
+--------------------------------------------- */
+
+let whIn =
+parseFloat(
+data.energy &&
+data.energy.whIn != null
+?
+data.energy.whIn
+:
+0
+);
+
+
+let whOut =
+parseFloat(
+data.energy &&
+data.energy.whOut != null
+?
+data.energy.whOut
+:
+0
+);
+
+
+let dailyIn =
+parseFloat(
+data.energy &&
+data.energy.dailyWhIn != null
+?
+data.energy.dailyWhIn
+:
+0
+);
+
+
+let dailyOut =
+parseFloat(
+data.energy &&
+data.energy.dailyWhOut != null
+?
+data.energy.dailyWhOut
+:
+0
+);
+
+
+document.getElementById(
+"whIn"
+).innerText =
+whIn.toFixed(3)+" Wh";
+
+
+document.getElementById(
+"whOut"
+).innerText =
+whOut.toFixed(3)+" Wh";
+
+
+document.getElementById(
+"dailyIn"
+).innerText =
+dailyIn.toFixed(2)+" Wh";
+
+
+document.getElementById(
+"dailyOut"
+).innerText =
+dailyOut.toFixed(2)+" Wh";
+
+
+/* ---------------------------------------------
+   MAX POWER
+--------------------------------------------- */
+
+if(power > maxCharge){
+
+maxCharge =
+power;
+
+localStorage.setItem(
+"maxCharge",
+maxCharge
+);
+
+}
+
+
+if(power < 0 &&
+Math.abs(power)>maxLoad){
+
+maxLoad =
+Math.abs(power);
+
+localStorage.setItem(
+"maxLoad",
+maxLoad
+);
+
+}
+
+
+document.getElementById(
+"maxCharge"
+).innerText =
+maxCharge.toFixed(0)+" W";
+
+
+document.getElementById(
+"maxLoad"
+).innerText =
+maxLoad.toFixed(0)+" W";
+
+
+/* ---------------------------------------------
+   AH CALCULATION
+--------------------------------------------- */
+
+const now =
+Date.now();
+
+
+const elapsedHours =
+(now-lastTime) /
+3600000;
+
+
+lastTime =
+now;
+
+
+if(
+elapsedHours > 0 &&
+elapsedHours < .1
+){
+
+if(current > .15){
+
+ahIn +=
+current *
+elapsedHours;
+
+localStorage.setItem(
+"ahIn",
+ahIn
+);
+
+}
+
+else if(current < -.15){
+
+ahOut +=
+Math.abs(current) *
+elapsedHours;
+
+localStorage.setItem(
+"ahOut",
+ahOut
+);
+
+}
+
+}
+
+
+document.getElementById(
+"ahIn"
+).innerText =
+ahIn.toFixed(2)+" Ah";
+
+
+document.getElementById(
+"ahOut"
+).innerText =
+ahOut.toFixed(2)+" Ah";
+
+
+/* ---------------------------------------------
+   WIFI
+--------------------------------------------- */
+
+let wifi =
+data.system &&
+data.system.wifiRSSI != null
+?
+data.system.wifiRSSI
+:
+"--";
+
+
+document.getElementById(
+"wifi"
+).innerText =
+wifi+" dBm";
+
+
+/* ---------------------------------------------
+   ONLINE STATUS
+--------------------------------------------- */
+
+let online =
+data.system &&
+data.system.status === "ONLINE";
+
+
+if(online){
+
+document.getElementById(
+"ledDot"
+).className =
+"w-2 h-2 rounded-full bg-[#C6F432]";
+
+document.getElementById(
+"firebaseStatus"
+).innerText =
+"ONLINE";
+
+document.getElementById(
+"firebaseStatus"
+).className =
+"green";
+
+}
+
+else{
+
+document.getElementById(
+"ledDot"
+).className =
+"w-2 h-2 rounded-full bg-red-500";
+
+document.getElementById(
+"firebaseStatus"
+).innerText =
+"OFFLINE";
+
+}
+
+
+/* ---------------------------------------------
+   GRAPH
+--------------------------------------------- */
+
+updateGraph(power);
+
+}
+
+);
+
+
+/* =====================================================
+   DATE
+===================================================== */
+
+const today =
+new Date();
+
+
+document.getElementById(
+"dateText"
+).innerText =
+today.toLocaleDateString(
+"en-US",
+{
+month:"short",
+day:"numeric",
+year:"numeric"
+}
+);
+
+
+/* =====================================================
+   INITIAL VALUES
+===================================================== */
+
+document.getElementById(
+"maxCharge"
+).innerText =
+maxCharge.toFixed(0)+" W";
+
+
+document.getElementById(
+"maxLoad"
+).innerText =
+maxLoad.toFixed(0)+" W";
+
+
+document.getElementById(
+"ahIn"
+).innerText =
+ahIn.toFixed(2)+" Ah";
+
+
+document.getElementById(
+"ahOut"
+).innerText =
+ahOut.toFixed(2)+" Ah";
+
 </script>
+
 </body>
 </html>
